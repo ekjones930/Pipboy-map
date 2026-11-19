@@ -446,12 +446,40 @@
         }catch(e){}
       }
       function click(){ beep(1250, .05, 0); }
+      var navVoice = null;
+      function pickVoice(){
+        if(!("speechSynthesis" in window)) return;
+        try{
+          var vs = speechSynthesis.getVoices() || [];
+          var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
+          var best = null, bestScore = -1;
+          vs.forEach(function(v){
+            if(!/^en([-_]|$)/i.test(v.lang||"")) return;
+            if(bad.test(v.name||"")) return;
+            var s = 0, n = (v.name||"").toLowerCase();
+            if(/premium/.test(n)) s += 60;
+            if(/enhanced/.test(n)) s += 50;
+            if(/samantha|ava|allison|susan|zoe|jenny|aria|nicky|joanna|salli|kimberly/.test(n)) s += 30;
+            if(/^en[-_]us/i.test(v.lang||"")) s += 20;
+            if(v.default) s += 5;
+            if(s > bestScore){ bestScore = s; best = v; }
+          });
+          navVoice = best;
+        }catch(e){}
+      }
+      if("speechSynthesis" in window){
+        pickVoice();
+        try{ speechSynthesis.onvoiceschanged = pickVoice; }catch(e){}
+      }
       function speak(text){
         if(!S.voice || !("speechSynthesis" in window)) return;
         try{
           speechSynthesis.cancel();
           var u = new SpeechSynthesisUtterance(text);
-          u.rate = 1.02;
+          if(navVoice) u.voice = navVoice;
+          u.lang = "en-US";
+          u.pitch = 1.0;
+          u.rate = 1.0;
           speechSynthesis.speak(u);
         }catch(e){}
       }
