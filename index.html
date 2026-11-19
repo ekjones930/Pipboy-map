@@ -624,7 +624,7 @@
         var c = S.userPos || originPoint();
         var vb = (c.lng-0.55).toFixed(4)+","+(c.lat+0.45).toFixed(4)+","+(c.lng+0.55).toFixed(4)+","+(c.lat-0.45).toFixed(4);
         function scan(bounded){
-          var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&addressdetails=1&countrycodes=us" +
+          var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=25&addressdetails=1&countrycodes=us" +
                     "&viewbox=" + vb + "&bounded=" + bounded + "&q=" + encodeURIComponent(q);
           return fetch(url, { headers:{ "Accept":"application/json" } })
             .then(function(r){ if(!r.ok) throw new Error("scan failed"); return r.json(); });
