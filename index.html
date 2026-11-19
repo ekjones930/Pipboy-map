@@ -621,8 +621,10 @@
         if(!q) return;
         click();
         setStatus("SCANNING FOR “" + q.toUpperCase() + "”…");
-        var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&countrycodes=us" +
-                  "&viewbox=-80.75,33.35,-79.55,32.45&bounded=0&q=" + encodeURIComponent(q);
+        var c = S.userPos || originPoint();
+        var vb = (c.lng-0.55).toFixed(4)+","+(c.lat+0.45).toFixed(4)+","+(c.lng+0.55).toFixed(4)+","+(c.lat-0.45).toFixed(4);
+        var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&addressdetails=1&countrycodes=us" +
+                  "&viewbox=" + vb + "&bounded=0&q=" + encodeURIComponent(q);
         fetch(url, { headers:{ "Accept":"application/json" } })
           .then(function(r){ if(!r.ok) throw new Error("scan failed"); return r.json(); })
           .then(function(data){
@@ -630,6 +632,11 @@
             list.innerHTML="";
             if(!data.length){ setStatus("NO SIGNAL — NOTHING FOUND FOR “" + q.toUpperCase() + "”. TRY A STREET + TOWN.", true); wrap.style.display="none"; return; }
             wrap.style.display="block";
+            data.sort(function(a,b){
+              var pa={lat:parseFloat(a.lat),lng:parseFloat(a.lon)}, pb={lat:parseFloat(b.lat),lng:parseFloat(b.lon)};
+              return haversine(originPoint(),pa)-haversine(originPoint(),pb);
+            });
+            data=data.slice(0,6);
             data.forEach(function(it){
               var name = (it.name || (it.address && (it.address.road || it.address.amenity)) || it.display_name.split(",")[0] || "UNNAMED").toUpperCase();
               var sub = it.display_name;
