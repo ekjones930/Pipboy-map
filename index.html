@@ -341,8 +341,8 @@
               <div class="odline" id="odLine"></div>
               <div class="ctlrow" style="margin-top:10px">
                 <span style="align-self:center; color:var(--grn-dim); font-size:13px; letter-spacing:1px">START FROM:</span>
-                <button class="btn" id="originGpsBtn">MY LOCATION</button>
-                <button class="btn on" id="originHqBtn">HUTCHINSON SQ</button>
+                <button class="btn on" id="originGpsBtn">MY LOCATION</button>
+                <button class="btn" id="originHqBtn">HUTCHINSON SQ</button>
                 <button class="btn warn" id="endNavBtn2">END NAVIGATION</button>
               </div>
               <div class="summary">
@@ -414,7 +414,7 @@
       /* ================= state ================= */
       var S = {
         userPos:null, follow:false, voice:true, watchId:null,
-        destination:null, selected:null, originMode:"hq",
+        destination:null, selected:null, originMode:"gps",
         route:null, stepIdx:0, arrived:false,
         mapOK:true, lastRenderPos:null, navWatchStarted:false
       };
