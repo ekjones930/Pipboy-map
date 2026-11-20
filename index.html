@@ -188,6 +188,19 @@
       .card .meta{ display:flex; gap:18px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--grn); }
       .card .meta b{ color:var(--grn-hi); font-weight:400; }
       .card .acts{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+      .pin svg{ width:15px; height:15px; display:block; }
+      .pin svg path{ fill:var(--grn); }
+      .pin--on svg path{ fill:#02140a; }
+      .markrow{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+      .markrow .marklbl{ font-size:12px; letter-spacing:1px; color:var(--grn-dim); margin-right:2px; }
+      .markbtn{ background:transparent; border:1px solid var(--grn-dim); border-radius:6px; padding:5px 7px; cursor:pointer; line-height:0; }
+      .markbtn svg{ width:17px; height:17px; }
+      .markbtn svg path{ fill:var(--grn); }
+      .markbtn.on{ background:var(--grn); border-color:var(--grn); }
+      .markbtn.on svg path{ fill:#02140a; }
+      .markbtn.clear{ color:var(--grn-dim); font-size:13px; line-height:1; padding:7px 9px; }
+      .rowicon svg{ width:13px; height:13px; vertical-align:-2px; }
+      .rowicon svg path{ fill:var(--grn); }
       .card .acts a.btn{ text-decoration:none; display:inline-flex; align-items:center; }
 
       /* ---------- route view ---------- */
@@ -337,6 +350,7 @@
                 <button class="btn" id="cardHomeBtn">SET AS HOME</button>
                 <a class="btn" id="cardGmaps" href="#" target="_blank" rel="noopener">OPEN IN GOOGLE MAPS ↗</a>
               </div>
+              <div class="markrow" id="markRow"><span class="marklbl">MARK AS:</span></div>
             </div>
 
             <h2 class="sect">MARKED LOCATIONS <span class="r" id="pinsCount"></span></h2>
@@ -384,7 +398,7 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
-              <div><span>BUILD</span><span class="ok">2026-11-20 · V13</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-20 · V14</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
             <button class="btn" id="voicePickBtn" style="width:100%;margin-top:10px">CHANGE GUIDANCE VOICE ▸</button>
@@ -431,11 +445,25 @@
         destination:null, selected:null, originMode:"gps",
         route:null, stepIdx:0, arrived:false,
         mapOK:true, lastRenderPos:null, navWatchStarted:false,
-        home:null, history:[]
+        home:null, history:[], marks:{}
       };
       try{ var _sh = localStorage.getItem("pipboyHome"); if(_sh) S.home = JSON.parse(_sh); }catch(e){}
       try{ var _hh = localStorage.getItem("pipboyHistory"); if(_hh) S.history = JSON.parse(_hh) || []; }catch(e){}
+      try{ var _mk = localStorage.getItem("pipboyMarks"); if(_mk) S.marks = JSON.parse(_mk) || {}; }catch(e){}
       function sameSpot(a, b){ return a && b && Math.abs(a.lat-b.lat)<1e-5 && Math.abs(a.lng-b.lng)<1e-5; }
+      var ICONS = [
+        { id:"star", svg:'<svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>' },
+        { id:"heart", svg:'<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' },
+        { id:"flag", svg:'<svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>' },
+        { id:"car", svg:'<svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-.9.57-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>' },
+        { id:"cross", svg:'<svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>' },
+        { id:"bolt", svg:'<svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>' },
+        { id:"diamond", svg:'<svg viewBox="0 0 24 24"><path d="M12 2l7 10-7 10L5 12z"/></svg>' },
+        { id:"target", svg:'<svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/><path d="M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>' }
+      ];
+      function iconSvg(id){ for(var i=0;i<ICONS.length;i++) if(ICONS[i].id===id) return ICONS[i].svg; return ""; }
+      function markKey(p){ return p.lat.toFixed(5)+","+p.lng.toFixed(5); }
+      function markOf(p){ return (p && !p.you && !p.home) ? (S.marks[markKey(p)] || null) : null; }
       function pinPlaces(){
         var out = S.history.slice(0,6);
         for(var i=0;i<PRESETS.length && out.length<6;i++){
@@ -651,6 +679,8 @@
       function markerHTML(place, index, selected){
         if(place.home) return '<div class="pin home'+(selected?" pin--on":"")+'"><img src="'+HOME_ICON+'" alt="HOME"></div>';
         if(place.you) return '<div class="pin you"><span>YOU</span></div>';
+        var mk = markOf(place);
+        if(mk) return '<div class="pin marked'+(selected?" pin--on":"")+'"><span>'+iconSvg(mk)+'</span></div>';
         return '<div class="pin'+(selected?" pin--on":"")+'"><span>'+(index+1)+'</span></div>';
       }
       function showFallback(){
@@ -730,7 +760,7 @@
           b.className="row"; b.type="button";
           var rawD = haversine(originPoint(), p);
           var d = rawD < 0.01 ? "ORIGIN" : fmtDist(rawD);
-          b.innerHTML = '<span class="num"><b>'+(p.home ? '<span style="font-size:11px">111</span>' : (i+1))+'</b></span>' +
+          b.innerHTML = '<span class="num"><b>'+(p.home ? '<span style="font-size:11px">111</span>' : (markOf(p) ? '<span class="rowicon">'+iconSvg(markOf(p))+'</span>' : (i+1)))+'</b></span>' +
             '<span class="main"><span class="name">'+esc(p.label)+'</span>' +
             '<span class="sub" style="display:block">'+esc(p.sub||"")+'</span></span>' +
             '<span class="dist">'+d+'<small>AIR DIST</small></span>';
@@ -758,6 +788,10 @@
         $("cardFrom").textContent = originName();
         $("cardRouteBtn").style.display = p.you ? "none" : "";
         $("cardHomeBtn").textContent = (S.home && sameSpot(S.home, p)) ? "CLEAR HOME MARK" : "SET AS HOME";
+        var mkNow = markOf(p);
+        $("markRow").style.display = (p.you || p.home) ? "none" : "";
+        var mbtns = $("markRow").querySelectorAll(".markbtn[data-icon]");
+        for(var mi=0; mi<mbtns.length; mi++) mbtns[mi].classList.toggle("on", mbtns[mi].getAttribute("data-icon")===mkNow);
         var url = MapHelpers.mapsDirectionsUrl(
           { label:p.label, address:p.sub||"", lat:p.lat, lng:p.lng },
           { origin: S.userPos ? {lat:S.userPos.lat, lng:S.userPos.lng} : undefined, travelmode:"driving" });
@@ -795,6 +829,30 @@
         setStatus("HOME MARKED AT YOUR CURRENT POSITION.");
         refreshMap();
       });
+      (function buildMarkRow(){
+        var row = $("markRow");
+        ICONS.forEach(function(ic){
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "markbtn"; b.setAttribute("data-icon", ic.id);
+          b.innerHTML = ic.svg;
+          b.addEventListener("click", function(){ setMark(ic.id); });
+          row.appendChild(b);
+        });
+        var c = document.createElement("button");
+        c.type = "button"; c.className = "markbtn clear"; c.textContent = "✕";
+        c.addEventListener("click", function(){ setMark(null); });
+        row.appendChild(c);
+      })();
+      function setMark(id){
+        var p = S.selected;
+        if(!p || p.you || p.home) return;
+        click();
+        if(id){ S.marks[markKey(p)] = id; recordHistory(p); setStatus(p.label + " MARKED — " + id.toUpperCase() + "."); }
+        else { delete S.marks[markKey(p)]; setStatus("MARK REMOVED FROM " + p.label + "."); }
+        try{ localStorage.setItem("pipboyMarks", JSON.stringify(S.marks)); }catch(e){}
+        refreshMap();
+        showCard(p);
+      }
 
       function setDestination(p){
         recordHistory(p);
