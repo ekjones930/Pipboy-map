@@ -375,9 +375,10 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
-              <div><span>BUILD</span><span class="ok">2026-11-19 · V3</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-19 · V4</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
+            <button class="btn" id="voicePickBtn" style="width:100%;margin-top:10px">CHANGE GUIDANCE VOICE ▸</button>
             <div class="note">FIELD NOTE: THIS IS A BROWSER BUILD. KEEP THIS SCREEN OPEN AND THE PHONE AWAKE WHILE NAVIGATING — IT CAN'T CALL TURNS FROM YOUR LOCK SCREEN THE WAY GOOGLE MAPS DOES. FOR HANDS-FREE DRIVING, PLOT THE COURSE HERE, THEN HAND OFF WITH “OPEN IN GOOGLE MAPS”.</div>
           </section>
 
@@ -501,9 +502,13 @@
           if(!vs.length && window._vl) vs = window._vl;
           var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
           var list = [];
+          var seen = {};
           vs.forEach(function(v){
             if(!/^en([-_]|$)/i.test(v.lang||"")) return;
             if(bad.test(v.name||"")) return;
+            var key = (v.name||"").toLowerCase();
+            if(seen[key]) return;
+            seen[key] = 1;
             list.push(v);
           });
           if(!list.length){
@@ -528,6 +533,8 @@
         }catch(e){}
       }
       (function(){
+        var pb = $("voicePickBtn");
+        if(pb) pb.addEventListener("click", function(){ cycleVoice(); });
         var vn = $("sysVoiceName");
         if(vn){
           vn.style.cursor = "pointer";
