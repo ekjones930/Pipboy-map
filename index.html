@@ -324,6 +324,7 @@
             <div class="ctlrow">
               <button class="btn" id="locateBtn">◎ LOCATE ME</button>
               <button class="btn" id="followBtn" aria-pressed="false">FOLLOW: OFF</button>
+              <button class="btn on" id="wakeBtn" aria-pressed="true">SCREEN: HELD</button>
               <button class="btn on" id="voiceBtn" aria-pressed="true">VOICE: ON</button>
               <button class="btn" id="resetBtn">RESET VIEW</button>
               <button class="btn" id="setHomeBtn">⌂ SET HOME HERE</button>
@@ -403,8 +404,9 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
-              <div><span>BUILD</span><span class="ok">2026-11-20 · V16</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-20 · V17</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
+              <div><span>SCREEN</span><span class="ok" id="sysWake">HELD AWAKE</span></div>
             </div>
             <button class="btn" id="voicePickBtn" style="width:100%;margin-top:10px">CHANGE GUIDANCE VOICE ▸</button>
             <div class="note">FIELD NOTE: THIS IS A BROWSER BUILD. KEEP THIS SCREEN OPEN AND THE PHONE AWAKE WHILE NAVIGATING — IT CAN'T CALL TURNS FROM YOUR LOCK SCREEN THE WAY GOOGLE MAPS DOES. FOR HANDS-FREE DRIVING, PLOT THE COURSE HERE, THEN HAND OFF WITH “OPEN IN GOOGLE MAPS”.</div>
@@ -451,11 +453,12 @@
         route:null, stepIdx:0, arrived:false,
         mapOK:true, lastRenderPos:null, navWatchStarted:false,
         followBasePos:null, followTargetPos:null, followShift:{x:0,y:0}, followAnim:null, followView:false,
-        home:null, history:[], marks:{}
+        home:null, history:[], marks:{}, wake:true
       };
       try{ var _sh = localStorage.getItem("pipboyHome"); if(_sh) S.home = JSON.parse(_sh); }catch(e){}
       try{ var _hh = localStorage.getItem("pipboyHistory"); if(_hh) S.history = JSON.parse(_hh) || []; }catch(e){}
       try{ var _mk = localStorage.getItem("pipboyMarks"); if(_mk) S.marks = JSON.parse(_mk) || {}; }catch(e){}
+      try{ var _wk = localStorage.getItem("pipboyWake"); if(_wk !== null) S.wake = (_wk === "1"); }catch(e){}
       function sameSpot(a, b){ return a && b && Math.abs(a.lat-b.lat)<1e-5 && Math.abs(a.lng-b.lng)<1e-5; }
       var ICONS = [
         { id:"settlement", name:"SETTLEMENT", svg:'<svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>' },
@@ -1208,6 +1211,44 @@
           setStatus("FOLLOW MODE OFF.");
         }
       });
+      var wakeLockObj = null;
+      function updateWakeUI(){
+        var b = $("wakeBtn");
+        if(b){ b.textContent = "SCREEN: " + (S.wake ? "HELD" : "AUTO"); b.classList.toggle("on", S.wake); b.setAttribute("aria-pressed", S.wake ? "true" : "false"); }
+        var sw = $("sysWake");
+        if(sw){ sw.textContent = S.wake ? "HELD AWAKE" : "AUTO-LOCK"; sw.className = S.wake ? "ok" : "bad"; }
+      }
+      async function applyWake(){
+        if(!("wakeLock" in navigator)){
+          var sw0 = $("sysWake");
+          if(sw0){ sw0.textContent = "NOT SUPPORTED HERE"; sw0.className = "bad"; }
+          return;
+        }
+        try{
+          if(S.wake){
+            if(!wakeLockObj){
+              wakeLockObj = await navigator.wakeLock.request("screen");
+              wakeLockObj.addEventListener("release", function(){ wakeLockObj = null; });
+            }
+          } else if(wakeLockObj){
+            var w = wakeLockObj; wakeLockObj = null;
+            await w.release();
+          }
+        }catch(e){ /* iOS can deny in Low Power Mode — the intent stays set and retries on return */ }
+        updateWakeUI();
+      }
+      $("wakeBtn").addEventListener("click", function(){
+        click();
+        S.wake = !S.wake;
+        try{ localStorage.setItem("pipboyWake", S.wake ? "1" : "0"); }catch(e){}
+        applyWake();
+        setStatus(S.wake ? "SCREEN WILL STAY AWAKE WHILE THE APP IS OPEN." : "SCREEN AUTO-LOCK RESTORED.");
+      });
+      document.addEventListener("visibilitychange", function(){
+        if(document.visibilityState === "visible" && S.wake) applyWake();
+      });
+      updateWakeUI();
+      applyWake();
       $("voiceBtn").addEventListener("click", function(){
         click();
         S.voice=!S.voice;
