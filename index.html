@@ -375,6 +375,7 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-19 · V3</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
             <div class="note">FIELD NOTE: THIS IS A BROWSER BUILD. KEEP THIS SCREEN OPEN AND THE PHONE AWAKE WHILE NAVIGATING — IT CAN'T CALL TURNS FROM YOUR LOCK SCREEN THE WAY GOOGLE MAPS DOES. FOR HANDS-FREE DRIVING, PLOT THE COURSE HERE, THEN HAND OFF WITH “OPEN IN GOOGLE MAPS”.</div>
@@ -453,6 +454,7 @@
         if(!("speechSynthesis" in window)) return;
         try{
           var vs = speechSynthesis.getVoices() || [];
+          if(vs.length) window._vl = vs;
           var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
           var best = null, bestScore = -1;
           var zoe = null;
@@ -496,6 +498,7 @@
         if(!("speechSynthesis" in window)) return;
         try{
           var vs = speechSynthesis.getVoices() || [];
+          if(!vs.length && window._vl) vs = window._vl;
           var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
           var list = [];
           vs.forEach(function(v){
@@ -503,7 +506,12 @@
             if(bad.test(v.name||"")) return;
             list.push(v);
           });
-          if(!list.length) return;
+          if(!list.length){
+            var vn0 = $("sysVoiceName");
+            if(vn0) vn0.textContent = "NO VOICES REPORTED";
+            try{ speechSynthesis.speak(new SpeechSynthesisUtterance(" ")); }catch(e){}
+            return;
+          }
           var idx = -1;
           for(var i=0;i<list.length;i++){ if(navVoice && list[i].name === navVoice.name){ idx = i; break; } }
           var next = list[(idx+1) % list.length];
@@ -521,9 +529,13 @@
       }
       (function(){
         var vn = $("sysVoiceName");
-        if(vn && vn.parentElement){
-          vn.parentElement.style.cursor = "pointer";
-          vn.parentElement.addEventListener("click", function(){ cycleVoice(); });
+        if(vn){
+          vn.style.cursor = "pointer";
+          vn.addEventListener("click", function(){ cycleVoice(); });
+          if(vn.parentElement){
+            vn.parentElement.style.cursor = "pointer";
+            vn.parentElement.addEventListener("click", function(){ cycleVoice(); });
+          }
         }
       })();
       function speak(text){
