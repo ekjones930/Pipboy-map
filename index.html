@@ -384,7 +384,7 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
-              <div><span>BUILD</span><span class="ok">2026-11-20 · V11</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-20 · V12</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
             <button class="btn" id="voicePickBtn" style="width:100%;margin-top:10px">CHANGE GUIDANCE VOICE ▸</button>
@@ -431,10 +431,31 @@
         destination:null, selected:null, originMode:"gps",
         route:null, stepIdx:0, arrived:false,
         mapOK:true, lastRenderPos:null, navWatchStarted:false,
-        home:null
+        home:null, history:[]
       };
       try{ var _sh = localStorage.getItem("pipboyHome"); if(_sh) S.home = JSON.parse(_sh); }catch(e){}
+      try{ var _hh = localStorage.getItem("pipboyHistory"); if(_hh) S.history = JSON.parse(_hh) || []; }catch(e){}
       function sameSpot(a, b){ return a && b && Math.abs(a.lat-b.lat)<1e-5 && Math.abs(a.lng-b.lng)<1e-5; }
+      function pinPlaces(){
+        var out = S.history.slice(0,6);
+        for(var i=0;i<PRESETS.length && out.length<6;i++){
+          var d = PRESETS[i], dup=false;
+          for(var j=0;j<out.length;j++){
+            var h = out[j];
+            if(h.label === d.label || (Math.abs(h.lat-d.lat)<0.002 && Math.abs(h.lng-d.lng)<0.002)){ dup=true; break; }
+          }
+          if(!dup) out.push(d);
+        }
+        return out;
+      }
+      function recordHistory(p){
+        if(!p || p.you || p.home) return;
+        var entry = { label:p.label, sub:p.sub||"", lat:p.lat, lng:p.lng };
+        S.history = S.history.filter(function(h){ return !sameSpot(h, entry); });
+        S.history.unshift(entry);
+        S.history = S.history.slice(0,6);
+        try{ localStorage.setItem("pipboyHistory", JSON.stringify(S.history)); }catch(e){}
+      }
       function homePlace(){
         if(!S.home) return null;
         return { label:"HOME", sub:S.home.sub || S.home.label || "MARKED LOCATION", lat:S.home.lat, lng:S.home.lng, home:true };
@@ -675,7 +696,7 @@
         }];
       }
       function viewHome(){
-        var places = PRESETS.slice();
+        var places = pinPlaces();
         if(S.userPos) places = [{ label:"YOUR POSITION", sub:"GPS FIX", lat:S.userPos.lat, lng:S.userPos.lng, you:true }].concat(places);
         showMap({ places:withHome(places), center:HOME_CENTER, zoom:12 });
       }
@@ -776,6 +797,7 @@
       });
 
       function setDestination(p){
+        recordHistory(p);
         S.destination = { label:p.label, sub:p.sub||"", lat:p.lat, lng:p.lng };
         setStatus("TARGET LOCKED: " + p.label);
       }
@@ -1039,7 +1061,7 @@
           if(S.route) viewRoute();
           else if(S.destination) viewDestination();
           else { /* center on user, keep presets */
-            var places=[{ label:"YOUR POSITION", sub:"GPS FIX", lat:S.userPos.lat, lng:S.userPos.lng, you:true }].concat(PRESETS);
+            var places=[{ label:"YOUR POSITION", sub:"GPS FIX", lat:S.userPos.lat, lng:S.userPos.lng, you:true }].concat(pinPlaces());
             showMap({ places:places, center:S.userPos, zoom:13 });
           }
         });
