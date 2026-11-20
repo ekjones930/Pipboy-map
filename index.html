@@ -416,7 +416,7 @@
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
-              <div><span>BUILD</span><span class="ok">2026-11-20 · V18</span></div>
+              <div><span>BUILD</span><span class="ok">2026-11-20 · V19</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
               <div><span>SCREEN</span><span class="ok" id="sysWake">HELD AWAKE</span></div>
             </div>
@@ -758,7 +758,7 @@
       function viewHome(){
         var places = pinPlaces();
         if(S.userPos) places = [{ label:"YOUR POSITION", sub:"GPS FIX", lat:S.userPos.lat, lng:S.userPos.lng, you:true }].concat(places);
-        showMap({ places:withHome(places), center:HOME_CENTER, zoom:12 });
+        showMap({ places:withHome(places), center:(S.home ? { lat:S.home.lat, lng:S.home.lng } : HOME_CENTER), zoom:(S.home ? 14 : 12) });
       }
       function viewDestination(){
         var places=[];
