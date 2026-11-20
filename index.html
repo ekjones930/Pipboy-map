@@ -374,6 +374,7 @@
               <div><span>GPS RECEIVER</span><span class="bad" id="sysGps">NO FIX — TAP “LOCATE ME”</span></div>
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
               <div><span>GUIDANCE VOICE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
+              <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
             <div class="note">FIELD NOTE: THIS IS A BROWSER BUILD. KEEP THIS SCREEN OPEN AND THE PHONE AWAKE WHILE NAVIGATING — IT CAN'T CALL TURNS FROM YOUR LOCK SCREEN THE WAY GOOGLE MAPS DOES. FOR HANDS-FREE DRIVING, PLOT THE COURSE HERE, THEN HAND OFF WITH “OPEN IN GOOGLE MAPS”.</div>
@@ -454,6 +455,10 @@
           var vs = speechSynthesis.getVoices() || [];
           var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
           var best = null, bestScore = -1;
+          var zoe = null;
+          vs.forEach(function(v){
+            if(/zoe/i.test((v.name||"")+" "+(v.voiceURI||""))) zoe = v;
+          });
           vs.forEach(function(v){
             if(!/^en([-_]|$)/i.test(v.lang||"")) return;
             if(bad.test(v.name||"")) return;
@@ -465,9 +470,16 @@
             if(v.default) s += 5;
             if(s > bestScore){ bestScore = s; best = v; }
           });
+          if(zoe) best = zoe;
           navVoice = best;
           var vn = $("sysVoiceName");
           if(vn) vn.textContent = best ? (best.name||"").toUpperCase() : "SYSTEM DEFAULT";
+          var vl = $("sysVoiceList");
+          if(vl){
+            var names = [];
+            vs.forEach(function(v){ if(/^en([-_]|$)/i.test(v.lang||"")) names.push(v.name); });
+            vl.textContent = names.length ? names.join(" · ").toUpperCase() : "NONE REPORTED";
+          }
         }catch(e){}
       }
       if("speechSynthesis" in window){
