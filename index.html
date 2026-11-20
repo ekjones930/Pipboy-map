@@ -373,7 +373,7 @@
               <div><span>ROUTING ENGINE — OSRM</span><span class="ok">READY</span></div>
               <div><span>GPS RECEIVER</span><span class="bad" id="sysGps">NO FIX — TAP “LOCATE ME”</span></div>
               <div><span>VOICE GUIDANCE</span><span class="ok" id="sysVoice">ON</span></div>
-              <div><span>GUIDANCE VOICE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
+              <div><span>GUIDANCE VOICE — TAP TO CHANGE</span><span class="ok" id="sysVoiceName">SYSTEM DEFAULT</span></div>
               <div><span>VOICES ON DEVICE</span><span class="ok" id="sysVoiceList" style="font-size:10px;text-align:right;max-width:58%">—</span></div>
               <div><span>FOLLOW MODE</span><span class="bad" id="sysFollow">OFF</span></div>
             </div>
@@ -471,6 +471,12 @@
             if(s > bestScore){ bestScore = s; best = v; }
           });
           if(zoe) best = zoe;
+          try{
+            var savedName = localStorage.getItem("pipboyVoice");
+            if(savedName){
+              for(var si=0; si<vs.length; si++){ if(vs[si].name === savedName){ best = vs[si]; break; } }
+            }
+          }catch(e){}
           navVoice = best;
           var vn = $("sysVoiceName");
           if(vn) vn.textContent = best ? (best.name||"").toUpperCase() : "SYSTEM DEFAULT";
@@ -486,6 +492,40 @@
         pickVoice();
         try{ speechSynthesis.onvoiceschanged = pickVoice; }catch(e){}
       }
+      function cycleVoice(){
+        if(!("speechSynthesis" in window)) return;
+        try{
+          var vs = speechSynthesis.getVoices() || [];
+          var bad = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news|hysterical|jester|junior|organ|princess|ralph|superstar|trinoids|whisper|wobble|zarvox|vicki/i;
+          var list = [];
+          vs.forEach(function(v){
+            if(!/^en([-_]|$)/i.test(v.lang||"")) return;
+            if(bad.test(v.name||"")) return;
+            list.push(v);
+          });
+          if(!list.length) return;
+          var idx = -1;
+          for(var i=0;i<list.length;i++){ if(navVoice && list[i].name === navVoice.name){ idx = i; break; } }
+          var next = list[(idx+1) % list.length];
+          navVoice = next;
+          try{ localStorage.setItem("pipboyVoice", next.name); }catch(e){}
+          var vn = $("sysVoiceName");
+          if(vn) vn.textContent = (next.name||"").toUpperCase();
+          try{
+            speechSynthesis.cancel();
+            var u = new SpeechSynthesisUtterance("Guidance voice: " + next.name);
+            u.voice = next; u.lang = "en-US";
+            speechSynthesis.speak(u);
+          }catch(e){}
+        }catch(e){}
+      }
+      (function(){
+        var vn = $("sysVoiceName");
+        if(vn && vn.parentElement){
+          vn.parentElement.style.cursor = "pointer";
+          vn.parentElement.addEventListener("click", function(){ cycleVoice(); });
+        }
+      })();
       function speak(text){
         if(!S.voice || !("speechSynthesis" in window)) return;
         try{
